@@ -1,14 +1,10 @@
-name: Scheduled Job
-
 on:
   schedule:
-    - cron: "*/1 * * * *" # Runs every day at midnight
+    - cron: "*/1 * * * *"
 
 jobs:
-  build:
+  hello_world:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Run a script
-        run: echo "Running a scheduled task"
+      - name: Echo current time
+        run: echo "The current server time is $(date)"
