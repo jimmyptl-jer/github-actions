@@ -37,8 +37,8 @@ module "ec2" {
   app_team          = local.app_team
   createdby         = local.createdby
 
-  docker_password   = var.docker_password
-  docker_username   = var.docker_username
-  github_run_number = var.github_run_number
+  # docker_password   = var.docker_password
+  # docker_username   = var.docker_username
+  # github_run_number = var.github_run_number
 
 }

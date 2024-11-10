@@ -1,18 +1,3 @@
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
 resource "aws_instance" "example" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
@@ -39,28 +24,22 @@ resource "aws_instance" "example" {
     inline = [
       "sudo apt-get update -y",
       "sudo apt install -y apt-transport-https ca-certificates curl software-properties-common",
+
+      # Install Docker
       "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
       "sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'",
       "sudo apt-get update -y",
       "sudo apt-get install -y docker-ce",
-      "sudo systemctl start docker",
 
-      # Login to Docker Hub
-      "sudo docker login -u '${var.docker_username}' -p '${var.docker_password}'",
+      # Install Docker Compose
+      "sudo curl -L https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose",
+      "sudo chmod +x /usr/local/bin/docker-compose",
 
-      # Pull Docker images
-      "sudo docker pull ${var.docker_username}/bookstore:client-${var.github_run_number}",
-      "sudo docker pull ${var.docker_username}/bookstore:api-${var.github_run_number}",
+      # Create docker-compose.yml file
+      "echo 'version: \"3.8\"\nservices:\n  client:\n    build:\n      context: ./frontend\n      dockerfile: Dockerfile\n    ports:\n      - \"80:80\"\n    networks:\n      - app-network\n  api:\n    build:\n      context: ./backend\n      dockerfile: Dockerfile\n    ports:\n      - \"3000:3000\"\n    networks:\n      - app-network\nnetworks:\n  app-network:' > ~/docker-compose.yml",
 
-      # Stop and remove any existing containers
-      "sudo docker stop bookstore-client || true",
-      "sudo docker rm bookstore-client || true",
-      "sudo docker stop bookstore-api || true",
-      "sudo docker rm bookstore-api || true",
-
-      # Run the new containers
-      "sudo docker run -d -p 80:80 --name bookstore-client ${var.docker_username}/bookstore:client-${var.github_run_number}",
-      "sudo docker run -d -p 3000:3000 --name bookstore-api ${var.docker_username}/bookstore:api-${var.github_run_number}"
+      # Run Docker Compose to start containers
+      "sudo docker-compose -f ~/docker-compose.yml up -d"
     ]
   }
 }
