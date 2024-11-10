@@ -1,4 +1,3 @@
-# Create the EC2 instance
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical (Ubuntu) AWS account ID
@@ -47,13 +46,19 @@ resource "aws_instance" "example" {
       "sudo apt-get update -y",
       "sudo apt-get install -y docker-ce",
 
-      # Install Docker Compose
-      "sudo curl -L https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose",
-      "sudo chmod +x /usr/local/bin/docker-compose",
+      # Install Docker Compose as a plugin
+      "sudo apt-get install -y docker-compose-plugin",
 
-      # Create docker-compose.yml file
+      # Ensure Docker Compose plugin is working
+      "sudo docker compose version",
+
       # Run Docker Compose to start containers
-      "sudo docker compose up"
+      "sudo docker compose -f ~/docker-compose.yml up -d"
     ]
+  }
+
+  provisioner "file" {
+    source      = "docker-compose.yml"              # Path to your local docker-compose.yml
+    destination = "/home/ubuntu/docker-compose.yml" # Path on EC2 instance where the file will be uploaded
   }
 }
