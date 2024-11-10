@@ -62,6 +62,7 @@ variable "docker_username" {
 variable "docker_password" {
   type      = string
   sensitive = true
+  default   = "Graywolf@4699"
 }
 
 variable "github_run_number" {
