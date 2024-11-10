@@ -44,44 +44,44 @@ jobs:
         run: |
           npm install
 
-  # # Deploy job
-  # deploy:
-  #   # Define dependencies on the build job
-  #   needs: [build]
+  # Deploy job
+  docker-deploy:
+    # Define dependencies on the build job
+    needs: [build]
 
-  #   # Set the operating system for the job.
-  #   runs-on: ubuntu-latest
+    # Set the operating system for the job.
+    runs-on: ubuntu-latest
 
-  #   # Define steps to be executed as part of the job.
-  #   steps:
-  #     # Checkout the code from the GitHub repository.
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v2
+    # Define steps to be executed as part of the job.
+    steps:
+      # Checkout the code from the GitHub repository.
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
-  #     # Build Client Docker Image
-  #     - name: Build Client Docker Image
-  #       working-directory: ./client
-  #       run: |
-  #         docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}} .
+      # Build Client Docker Image
+      - name: Build Client Docker Image
+        working-directory: ./client
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}} .
 
-  #     # Build Server Docker Image
-  #     - name: Build Server Docker Image
-  #       working-directory: ./api
-  #       run: |
-  #         docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}} .
+      # Build Server Docker Image
+      - name: Build Server Docker Image
+        working-directory: ./api
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}} .
 
-  #     # Docker Hub Login
-  #     - name: Docker Hub Login
-  #       uses: docker/login-action@v3
-  #       with:
-  #         username: ${{ secrets.DOCKER_USERNAME }} # Provide Docker Hub username
-  #         password: ${{ secrets.DOCKER_PASSWORD }} # Provide Docker Hub password
+      # Docker Hub Login
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }} # Provide Docker Hub username
+          password: ${{ secrets.DOCKER_PASSWORD }} # Provide Docker Hub password
 
-  #     # Push Docker Images To Docker Hub
-  #     - name: Push Docker Images To Docker Hub
-  #       run: |
-  #         docker push ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
-  #         docker push ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
+      # Push Docker Images To Docker Hub
+      - name: Push Docker Images To Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/bookstore:client-${{github.run_number}}
+          docker push ${{ secrets.DOCKER_USERNAME }}/bookstore:api-${{github.run_number}}
 
   # # AWS Deployment job
   # aws:
