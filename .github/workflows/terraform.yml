@@ -1,0 +1,78 @@
+name: Terraform CI/CD Pipeline
+
+# Trigger the pipeline on push to the main branch
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+
+    # Steps for applying Terraform changes
+    steps:
+      # Checkout the code from the GitHub repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Terraform CLI with the correct version
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.1.7" # Set the version of Terraform you are using
+
+      # Initialize Terraform to download providers and set up the backend
+      - name: Terraform Init
+        run: terraform init
+
+      # Run Terraform Plan to see changes that will be applied
+      - name: Terraform Plan
+        run: terraform plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Apply the Terraform plan to deploy infrastructure
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  terraform-destroy:
+    if: ${{ env.RUN_DESTROY == 'true' }} # Only run if RUN_DESTROY is set to 'true'
+    runs-on: ubuntu-latest
+
+    # Steps for destroying the infrastructure
+    steps:
+      # Checkout the code from the GitHub repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Terraform CLI with the correct version
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.1.7" # Set the version of Terraform you are using
+
+      # Initialize Terraform to download providers and set up the backend
+      - name: Terraform Init
+        run: terraform init
+
+      # Run Terraform Plan for destruction to preview the changes
+      - name: Terraform Plan (Destroy)
+        run: terraform plan -destroy -out=tfplan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Apply the Terraform destroy plan to remove infrastructure
+      - name: Terraform Destroy
+        run: terraform apply -auto-approve tfplan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
