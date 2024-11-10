@@ -45,7 +45,7 @@ variable "sg_name" {
 variable "ingress_port" {
   description = "The port to allow incoming traffic (e.g., 80 for HTTP)."
   type        = list(number)
-  default     = [80, 443, 3000, 27017]
+  default     = [80, 443, 3000, 27017, 22]
 }
 
 variable "cidr_block" {
