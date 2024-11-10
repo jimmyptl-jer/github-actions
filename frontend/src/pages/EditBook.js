@@ -27,7 +27,7 @@ const EditBook = () => {
       .catch((err) => {
         console.log(err);
       });
-  }, []);
+  }, [id]);
 
 
   const handleEditBook = () => {
