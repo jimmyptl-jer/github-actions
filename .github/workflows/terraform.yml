@@ -43,6 +43,7 @@ jobs:
 
   infra-deploy:
     runs-on: ubuntu-latest
+    needs: infra-deploy
 
     steps:
       # Step 1: Checkout the code from the GitHub repository.
