@@ -101,7 +101,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.1.7" # Set to a version that supports -chdir
+          terraform_version: "1.1.7" # Set to a version that supports
+          cli_config_credentials_token: ${{ secrets.TF_CLOUD_TOKEN }}
 
       # Step 3: Check the formatting of Terraform files (optional, continue on error).
       - name: Terraform fmt
