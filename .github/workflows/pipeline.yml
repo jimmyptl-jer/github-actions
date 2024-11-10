@@ -62,13 +62,13 @@ jobs:
       - name: Build Client Docker Image
         working-directory: ./client
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}} .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bookstore:client-${{github.run_number}} .
 
       # Build Server Docker Image
       - name: Build Server Docker Image
         working-directory: ./api
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}} .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bookstore:api-${{github.run_number}} .
 
       # Docker Hub Login
       - name: Docker Hub Login
