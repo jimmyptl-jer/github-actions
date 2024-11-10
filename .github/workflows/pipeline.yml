@@ -9,7 +9,7 @@ on:
 
 # Define jobs for the workflow.
 jobs:
-  # Build job
+  # Build job to install dependencies and build both client and server apps
   build:
     # Strategy for matrix builds with different Node.js versions
     strategy:
@@ -44,7 +44,7 @@ jobs:
         run: |
           npm install
 
-  # Deploy job
+  # Deploy job to build and push Docker images to Docker Hub
   docker-deploy:
     # Define dependencies on the build job
     needs: [build]
@@ -70,49 +70,62 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/bookstore:api-${{github.run_number}} .
 
-      # Docker Hub Login
+      # Docker Hub Login to authenticate before pushing images
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }} # Provide Docker Hub username
-          password: ${{ secrets.DOCKER_PASSWORD }} # Provide Docker Hub password
+          username: ${{ secrets.DOCKER_USERNAME }} # Docker Hub username
+          password: ${{ secrets.DOCKER_PASSWORD }} # Docker Hub password
 
-      # Push Docker Images To Docker Hub
+      # Push Docker Images to Docker Hub
       - name: Push Docker Images To Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/bookstore:client-${{github.run_number}}
           docker push ${{ secrets.DOCKER_USERNAME }}/bookstore:api-${{github.run_number}}
 
-  # # AWS Deployment job
-  # aws:
-  #   needs: [deploy]
+  # Terraform job for infrastructure deployment in Terraform Cloud
+  infra-deploy:
+    # Define dependencies on the docker-deploy job
+    needs: [docker-deploy]
+    runs-on: ubuntu-latest
 
-  #   runs-on: ubuntu-latest
+    # Define steps to be executed as part of the job.
+    steps:
+      # Checkout the code from the GitHub repository.
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4
+      # Set up Terraform CLI with Terraform Cloud integration
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.1.7"
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
 
-  #     - name: Configure AWS Credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
-  #         aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-  #         aws-region: "us-east-1"
+      # Set up the Terraform Cloud API Token for authentication
+      - name: Set up Terraform Cloud API Token
+        run: echo "TF_CLOUD_TOKEN=${{ secrets.TF_CLOUD_TOKEN }}" >> $GITHUB_ENV
 
-  #     - name: SSH into EC2 instance and deploy
-  #       uses: appleboy/ssh-action@master
-  #       with:
-  #         host: ${{ secrets.AWS_EC2_HOST }}
-  #         username: ${{ secrets.AWS_EC2_USERNAME }}
-  #         key: ${{ secrets.AWS_EC2_SSH_KEY }}
+      # Initialize Terraform to download providers and set up the backend
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform # Adjust to your Terraform directory
 
-  #         script: |
-  #           sudo docker pull ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
-  #           sudo docker pull ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
-  #           sudo docker stop my-node-app || true
-  #           sudo docker rm my-node-app || true
-  #           sudo docker stop my-node-app-api || true
-  #           sudo docker rm my-node-app-api || true
-  #           sudo docker run -d -p 80:80 --name  ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
-  #           sudo docker run -d -p 3000:3000 --name my-node-app-api ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
+      # Run Terraform Plan to see changes that will be applied
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: ./terraform # Adjust to your Terraform directory
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Apply the Terraform Plan to deploy infrastructure
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./terraform # Adjust to your Terraform directory
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
