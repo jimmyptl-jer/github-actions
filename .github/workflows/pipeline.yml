@@ -33,14 +33,14 @@ jobs:
 
       # Install dependencies and build the client application.
       - name: Install Dependencies and Build Client
-        working-directory: ./frontend
+        working-directory: ./client
         run: |
           npm install
           npm run build
 
       # Install dependencies and build the server application.
       - name: Install Dependencies and Build Server
-        working-directory: ./backend
+        working-directory: ./api
         run: |
           npm install
 
