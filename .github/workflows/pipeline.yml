@@ -1,5 +1,5 @@
 # The name of the workflow.
-name: MERN CI/CD
+name: Bookstore CI/CD
 
 # Define when the workflow should run (on push to main branch).
 on:
@@ -14,7 +14,7 @@ jobs:
     # Strategy for matrix builds with different Node.js versions
     strategy:
       matrix:
-        node_version: [21]
+        node_version: [23]
 
     # Set the operating system for the job.
     runs-on: ubuntu-latest
@@ -33,86 +33,86 @@ jobs:
 
       # Install dependencies and build the client application.
       - name: Install Dependencies and Build Client
-        working-directory: ./client
+        working-directory: ./frontend
         run: |
           npm install
           npm run build
 
       # Install dependencies and build the server application.
       - name: Install Dependencies and Build Server
-        working-directory: ./api
+        working-directory: ./backend
         run: |
           npm install
 
-  # Deploy job
-  deploy:
-    # Define dependencies on the build job
-    needs: [build]
+  # # Deploy job
+  # deploy:
+  #   # Define dependencies on the build job
+  #   needs: [build]
 
-    # Set the operating system for the job.
-    runs-on: ubuntu-latest
+  #   # Set the operating system for the job.
+  #   runs-on: ubuntu-latest
 
-    # Define steps to be executed as part of the job.
-    steps:
-      # Checkout the code from the GitHub repository.
-      - name: Checkout Code
-        uses: actions/checkout@v2
+  #   # Define steps to be executed as part of the job.
+  #   steps:
+  #     # Checkout the code from the GitHub repository.
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v2
 
-      # Build Client Docker Image
-      - name: Build Client Docker Image
-        working-directory: ./client
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}} .
+  #     # Build Client Docker Image
+  #     - name: Build Client Docker Image
+  #       working-directory: ./client
+  #       run: |
+  #         docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}} .
 
-      # Build Server Docker Image
-      - name: Build Server Docker Image
-        working-directory: ./api
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}} .
+  #     # Build Server Docker Image
+  #     - name: Build Server Docker Image
+  #       working-directory: ./api
+  #       run: |
+  #         docker build -t ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}} .
 
-      # Docker Hub Login
-      - name: Docker Hub Login
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }} # Provide Docker Hub username
-          password: ${{ secrets.DOCKER_PASSWORD }} # Provide Docker Hub password
+  #     # Docker Hub Login
+  #     - name: Docker Hub Login
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }} # Provide Docker Hub username
+  #         password: ${{ secrets.DOCKER_PASSWORD }} # Provide Docker Hub password
 
-      # Push Docker Images To Docker Hub
-      - name: Push Docker Images To Docker Hub
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
-          docker push ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
+  #     # Push Docker Images To Docker Hub
+  #     - name: Push Docker Images To Docker Hub
+  #       run: |
+  #         docker push ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
+  #         docker push ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
 
-  # AWS Deployment job
-  aws:
-    needs: [deploy]
+  # # AWS Deployment job
+  # aws:
+  #   needs: [deploy]
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
-          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-          aws-region: "us-east-1"
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
+  #         aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+  #         aws-region: "us-east-1"
 
-      - name: SSH into EC2 instance and deploy
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.AWS_EC2_HOST }}
-          username: ${{ secrets.AWS_EC2_USERNAME }}
-          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+  #     - name: SSH into EC2 instance and deploy
+  #       uses: appleboy/ssh-action@master
+  #       with:
+  #         host: ${{ secrets.AWS_EC2_HOST }}
+  #         username: ${{ secrets.AWS_EC2_USERNAME }}
+  #         key: ${{ secrets.AWS_EC2_SSH_KEY }}
 
-          script: |
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
-            sudo docker stop my-node-app || true
-            sudo docker rm my-node-app || true
-            sudo docker stop my-node-app-api || true
-            sudo docker rm my-node-app-api || true
-            sudo docker run -d -p 80:80 --name  ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
-            sudo docker run -d -p 3000:3000 --name my-node-app-api ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
+  #         script: |
+  #           sudo docker pull ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
+  #           sudo docker pull ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
+  #           sudo docker stop my-node-app || true
+  #           sudo docker rm my-node-app || true
+  #           sudo docker stop my-node-app-api || true
+  #           sudo docker rm my-node-app-api || true
+  #           sudo docker run -d -p 80:80 --name  ${{ secrets.DOCKER_USERNAME }}/blog-application:client-${{github.run_number}}
+  #           sudo docker run -d -p 3000:3000 --name my-node-app-api ${{ secrets.DOCKER_USERNAME }}/blog-application:api-${{github.run_number}}
