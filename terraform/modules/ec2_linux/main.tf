@@ -1,6 +1,6 @@
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical (Ubuntu) AWS account ID
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
@@ -35,32 +35,32 @@ resource "aws_instance" "example" {
     host        = self.public_ip
   }
 
-  # File provisioner to upload the docker-compose.yml to the EC2 instance
-  provisioner "file" {
-    source      = "${path.module}/../../../docker-compose.yml" # Relative path from ec2_linux directory
-    destination = "/home/ubuntu/docker-compose.yml"
-  }
-
-  # Remote-exec provisioner to install Docker, Docker Compose and run Docker Compose
   provisioner "remote-exec" {
     inline = [
       "sudo apt-get update -y",
       "sudo apt install -y apt-transport-https ca-certificates curl software-properties-common",
-
-      # Install Docker
       "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
       "sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'",
       "sudo apt-get update -y",
       "sudo apt-get install -y docker-ce",
+      "sudo systemctl start docker",
 
-      # Install Docker Compose as a plugin
-      "sudo apt-get install -y docker-compose-plugin",
+      # Login to Docker Hub
+      "sudo docker login -u '${var.docker_username}' -p '${var.docker_password}'",
 
-      # Ensure Docker Compose plugin is working
-      "sudo docker compose version",
+      # Pull Docker images
+      "sudo docker pull ${var.docker_username}/bookstore:client",
+      "sudo docker pull ${var.docker_username}/bookstore:api",
 
-      # Run Docker Compose to start containers
-      "sudo docker compose -f /home/ubuntu/docker-compose.yml up -d"
+      # Stop and remove any existing containers
+      "sudo docker stop bookstore-client || true",
+      "sudo docker rm bookstore-client || true",
+      "sudo docker stop bookstore-api || true",
+      "sudo docker rm bookstore-api || true",
+
+      # Run the new containers
+      "sudo docker run -d -p 80:80 --name bookstore-client ${var.docker_username}/bookstore:client",
+      "sudo docker run -d -p 3000:3000 --name bookstore-api ${var.docker_username}/bookstore:api"
     ]
   }
 }

@@ -1,6 +1,6 @@
 name: Bookstore CI/CD
 
-# Define when the workflow should run (on push to main branch).
+# Define when the workflow should run (on push to the main branch).
 on:
   push:
     branches:
@@ -8,6 +8,39 @@ on:
 
 # Define jobs for the workflow.
 jobs:
+  docker-registry-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code from the GitHub repository.
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Build Docker image for the client.
+      - name: Build Client Docker Image
+        working-directory: ./client
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bookstore:client .
+
+      # Step 3: Build Docker image for the server.
+      - name: Build Server Docker Image
+        working-directory: ./api
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bookstore:api .
+
+      # Step 4: Authenticate with Docker Hub.
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 5: Push both client and server Docker images to Docker Hub.
+      - name: Push Docker Images To Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/bookstore:client
+          docker push ${{ secrets.DOCKER_USERNAME }}/bookstore:api
+
   infra-deploy:
     runs-on: ubuntu-latest
 
@@ -20,7 +53,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.1.7" # Set to a version that supports
+          terraform_version: "1.1.7"
           cli_config_credentials_token: ${{ secrets.TF_CLOUD_TOKEN }}
 
       # Step 3: Check the formatting of Terraform files (optional, continue on error).
@@ -35,7 +68,7 @@ jobs:
         working-directory: ./terraform
         run: terraform init
 
-      # Step 5: Run Terraform Plan to preview infrastructure changes.
+      # Step 5: Run Terraform Plan to see changes that will be applied.
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan
@@ -43,7 +76,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # Step 6: Apply the Terraform Plan to deploy the infrastructure.
+      # Step 6: Apply the Terraform Plan to deploy infrastructure.
       - name: Terraform Apply
         working-directory: ./terraform
         run: terraform apply -auto-approve

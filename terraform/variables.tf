@@ -52,3 +52,15 @@ variable "cidr_block" {
   description = "The CIDR block from which traffic is allowed for ingress. Typically '0.0.0.0/0' allows all traffic."
   default     = "0.0.0.0/0"
 }
+
+variable "docker_username" {
+  description = "Docker hub Username"
+  type        = string
+  default     = "jerry4699"
+}
+
+variable "docker_password" {
+  type      = string
+  sensitive = true
+  default   = "Graywolf@4699"
+}
