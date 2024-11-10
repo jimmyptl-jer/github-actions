@@ -54,8 +54,9 @@ variable "cidr_block" {
 }
 
 variable "docker_username" {
-  type    = string
-  default = "jerry4699"
+  description = "Docker hub Username"
+  type        = string
+  default     = "jerry4699"
 }
 
 variable "docker_password" {
