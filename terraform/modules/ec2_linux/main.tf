@@ -1,6 +1,6 @@
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical (Ubuntu) AWS account ID
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
@@ -28,30 +28,29 @@ resource "aws_instance" "example" {
     "CreatedBy" = var.createdby
   }
 
-  # Connection details for remote-exec
   connection {
     type        = "ssh"
-    user        = "ubuntu"           # Default user for Ubuntu AMIs
-    private_key = file("server.pem") # Path to SSH private key
+    user        = "ubuntu"
+    private_key = file("server.pem")
     host        = self.public_ip
   }
 
-  # Provisioner to install Docker and run containers
   provisioner "remote-exec" {
     inline = [
-      # Install Docker
       "sudo apt-get update -y",
       "sudo apt install -y apt-transport-https ca-certificates curl software-properties-common",
       "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
       "sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'",
       "sudo apt-get update -y",
       "sudo apt-get install -y docker-ce",
-      "sudo systemctl status docker"
+      "sudo systemctl start docker",
+
+      # Login to Docker Hub
+      "sudo docker login -u '${var.docker_username}' -p '${var.docker_password}'",
 
       # Pull Docker images
-      "sudo docker login -u 'jerry4699' -p 'Graywolf@4699'",
-      "sudo docker pull ${secrets.DOCKER_USERNAME}/bookstore:client-${github_run_number}",
-      "sudo docker pull ${secrets.DOCKER_USERNAME}/bookstore:api-${github_run_number}",
+      "sudo docker pull ${var.docker_username}/bookstore:client-${var.github_run_number}",
+      "sudo docker pull ${var.docker_username}/bookstore:api-${var.github_run_number}",
 
       # Stop and remove any existing containers
       "sudo docker stop bookstore-client || true",
@@ -60,8 +59,8 @@ resource "aws_instance" "example" {
       "sudo docker rm bookstore-api || true",
 
       # Run the new containers
-      "sudo docker run -d -p 80:80 --name bookstore-client ${secrets.DOCKER_USERNAME}/bookstore:client-${github.run_number}",
-      "sudo docker run -d -p 3000:3000 --name bookstore-api ${secrets.DOCKER_USERNAME}/bookstore:api-${github.run_number}"
+      "sudo docker run -d -p 80:80 --name bookstore-client ${var.docker_username}/bookstore:client-${var.github_run_number}",
+      "sudo docker run -d -p 3000:3000 --name bookstore-api ${var.docker_username}/bookstore:api-${var.github_run_number}"
     ]
   }
 }
