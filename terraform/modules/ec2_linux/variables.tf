@@ -43,7 +43,3 @@ variable "docker_password" {
   type      = string
   sensitive = true
 }
-
-variable "github_run_number" {
-  type = string
-}
