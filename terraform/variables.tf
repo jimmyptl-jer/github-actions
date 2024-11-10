@@ -54,7 +54,8 @@ variable "cidr_block" {
 }
 
 variable "docker_username" {
-  type = string
+  type    = string
+  default = "jerry4699"
 }
 
 variable "docker_password" {
