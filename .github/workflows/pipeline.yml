@@ -117,8 +117,7 @@ jobs:
       # Run Terraform Plan to see changes that will be applied
       - name: Terraform Plan
         working-directory: ./terraform
-        run: terraform plan
-        run: terraform apply -auto-approve \
+        run: terraform plan \
           -var="docker_username=${{ secrets.DOCKER_USERNAME }}" \
           -var="docker_password=${{ secrets.DOCKER_PASSWORD }}" \
           -var="github_run_number=${{ github.run_number }}"
