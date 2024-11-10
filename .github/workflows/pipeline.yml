@@ -118,6 +118,10 @@ jobs:
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan
+        run: terraform apply -auto-approve \
+          -var="docker_username=${{ secrets.DOCKER_USERNAME }}" \
+          -var="docker_password=${{ secrets.DOCKER_PASSWORD }}" \
+          -var="github_run_number=${{ github.run_number }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
