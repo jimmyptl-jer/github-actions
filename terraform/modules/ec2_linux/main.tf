@@ -37,7 +37,7 @@ resource "aws_instance" "example" {
 
   # File provisioner to upload the docker-compose.yml to the EC2 instance
   provisioner "file" {
-    source      = "docker-compose.yml"              # Path to your local docker-compose.yml
+    source      = "../../../docker-compose.yml"     # Path to your local docker-compose.yml
     destination = "/home/ubuntu/docker-compose.yml" # Corrected path on EC2 instance
   }
 
