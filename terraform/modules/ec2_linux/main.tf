@@ -52,10 +52,8 @@ resource "aws_instance" "example" {
       "sudo chmod +x /usr/local/bin/docker-compose",
 
       # Create docker-compose.yml file
-      "echo 'version: \"3.8\"\nservices:\n  client:\n    build:\n      context: ./frontend\n      dockerfile: Dockerfile\n    ports:\n      - \"80:80\"\n    networks:\n      - app-network\n  api:\n    build:\n      context: ./backend\n      dockerfile: Dockerfile\n    ports:\n      - \"3000:3000\"\n    networks:\n      - app-network\nnetworks:\n  app-network:' > ~/docker-compose.yml",
-
       # Run Docker Compose to start containers
-      "sudo docker-compose -f ~/docker-compose.yml up -d"
+      "sudo docker compose up"
     ]
   }
 }
