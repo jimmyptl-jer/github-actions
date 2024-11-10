@@ -35,6 +35,13 @@ resource "aws_instance" "example" {
     host        = self.public_ip
   }
 
+  # File provisioner to upload the docker-compose.yml to the EC2 instance
+  provisioner "file" {
+    source      = "docker-compose.yml"              # Path to your local docker-compose.yml
+    destination = "/home/ubuntu/docker-compose.yml" # Corrected path on EC2 instance
+  }
+
+  # Remote-exec provisioner to install Docker, Docker Compose and run Docker Compose
   provisioner "remote-exec" {
     inline = [
       "sudo apt-get update -y",
@@ -53,12 +60,7 @@ resource "aws_instance" "example" {
       "sudo docker compose version",
 
       # Run Docker Compose to start containers
-      "sudo docker compose -f ~/docker-compose.yml up -d"
+      "sudo docker compose -f /home/ubuntu/docker-compose.yml up -d"
     ]
-  }
-
-  provisioner "file" {
-    source      = "docker-compose.yml"         # Path to your local docker-compose.yml
-    destination = "/ubuntu/docker-compose.yml" # Path on EC2 instance where the file will be uploaded
   }
 }
