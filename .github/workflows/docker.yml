@@ -1,80 +1,70 @@
-# Deploy job to build and push Docker images to Docker Hub.
-name: BookStore Build and Push Docker Images
+name: BookStore Build, Scan, and Push Docker Images
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
   docker-registry-upload:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      # Step 2: Set up QEMU and Buildx
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
+      # Step 3: Docker Hub Login
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Define dynamic tag format using branch name or commit timestamp
-      - name: Define Image Tags
-        id: vars
-        run: |
-          # Using branch name or commit SHA for unique tags
-          TAG_SHA="${{ github.sha }}"
-          BRANCH_NAME="${{ github.ref_name }}"
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          echo "CLIENT_IMAGE_TAG=${{ secrets.DOCKER_USERNAME }}/bookstore:client-${BRANCH_NAME}-${TAG_SHA}" >> $GITHUB_ENV
-          echo "SERVER_IMAGE_TAG=${{ secrets.DOCKER_USERNAME }}/bookstore:server-${BRANCH_NAME}-${TAG_SHA}" >> $GITHUB_ENV
-
-      # Build and Push Client Docker Image with metadata and dynamic tags
-      - name: Build and Push Client Docker Image
+      # Step 4: Build and Export Image for Scanning
+      - name: Build and Export Docker Image
         uses: docker/build-push-action@v6
         with:
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          context: ./client
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/bookstore:client-latest
-            ${{ secrets.DOCKER_USERNAME }}/bookstore:client-${{ github.sha }}
-            ${{ env.CLIENT_IMAGE_TAG }}
-          push: true
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-            org.opencontainers.image.created=${{ github.event.created_at }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title="BookStore Client App"
-            org.opencontainers.image.description="A client application for the BookStore project."
-            org.opencontainers.image.version=${{ github.sha }}
+          push: false
+          load: true
+          tags: ${{ github.run_id }}
+          platforms: linux/amd64
 
-      # Build and Push Server Docker Image with metadata and dynamic tags
-      - name: Build and Push Server Docker Image
+      # Step 5: Run Trivy for CVE Scanning
+      - name: Run Trivy for CVE Scanning
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ github.run_id }}
+          exit-code: 0
+          format: table
+
+      # Step 6: Docker Metadata for Final Image Build
+      - name: Docker Metadata
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/bookstore
+          flavor: latest=false
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha
+
+      # Step 7: Build and Push Final Docker Image
+      - name: Build and Push to Docker Hub
         uses: docker/build-push-action@v6
         with:
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          context: ./api
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/bookstore:api-latest
-            ${{ secrets.DOCKER_USERNAME }}/bookstore:api-${{ github.sha }}
-            ${{ env.SERVER_IMAGE_TAG }}
-          push: true
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-            org.opencontainers.image.created=${{ github.event.created_at }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title="BookStore API Server"
-            org.opencontainers.image.description="The server component for the BookStore project."
-            org.opencontainers.image.version=${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
