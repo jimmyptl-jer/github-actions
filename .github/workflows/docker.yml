@@ -4,67 +4,103 @@ on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
   docker-registry-upload:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      # Step 2: Set up QEMU and Buildx
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 3: Docker Hub Login
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 4: Build and Export Image for Scanning
-      - name: Build and Export Docker Image
-        uses: docker/build-push-action@v6
-        with:
-          push: false
-          load: true
-          tags: ${{ github.run_id }}
-          platforms: linux/amd64
-
-      # Step 5: Run Trivy for CVE Scanning
-      - name: Run Trivy for CVE Scanning
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ github.run_id }}
-          exit-code: 0
-          format: table
-
-      # Step 6: Docker Metadata for Final Image Build
-      - name: Docker Metadata
-        id: docker_meta
+      # Docker Metadata for Client Image
+      - name: Docker Metadata for Client Image
+        id: client_docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/bookstore
+          images: ${{ secrets.DOCKER_USERNAME }}/bookstore-client
           flavor: latest=false
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
             type=sha
 
-      # Step 7: Build and Push Final Docker Image
-      - name: Build and Push to Docker Hub
+      # Docker Metadata for Server Image
+      - name: Docker Metadata for Server Image
+        id: server_docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/bookstore-server
+          flavor: latest=false
+          tags: |
+            type=ref,event=branch
+            type=sha
+
+      # Build Client Docker Image without pushing
+      - name: Build Client Docker Image
         uses: docker/build-push-action@v6
         with:
-          push: true
-          tags: ${{ steps.docker_meta.outputs.tags }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          context: ./client
+          tags: ${{ steps.client_docker_meta.outputs.tags }}
+          labels: ${{ steps.client_docker_meta.outputs.labels }}
+          push: false
           platforms: linux/amd64,linux/arm64
+
+      # Build Server Docker Image without pushing
+      - name: Build Server Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          context: ./api
+          tags: ${{ steps.server_docker_meta.outputs.tags }}
+          labels: ${{ steps.server_docker_meta.outputs.labels }}
+          push: false
+          platforms: linux/amd64,linux/arm64
+
+      # Run Snyk Security Scans for Client Image
+      - name: Snyk Docker Scan for Client Image
+        uses: snyk/actions/docker@master
+        with:
+          image: ${{ steps.client_docker_meta.outputs.tags }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Run Snyk Security Scans for Server Image
+      - name: Snyk Docker Scan for Server Image
+        uses: snyk/actions/docker@master
+        with:
+          image: ${{ steps.server_docker_meta.outputs.tags }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Push Client Docker Image only if Snyk Scan Passed
+      - name: Push Client Docker Image
+        if: ${{ success() }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          tags: ${{ steps.client_docker_meta.outputs.tags }}
+          push: true
+
+      # Push Server Docker Image only if Snyk Scan Passed
+      - name: Push Server Docker Image
+        if: ${{ success() }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          tags: ${{ steps.server_docker_meta.outputs.tags }}
+          push: true
