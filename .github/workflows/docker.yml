@@ -13,9 +13,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
@@ -44,25 +41,23 @@ jobs:
             type=ref,event=branch
             type=sha
 
-      # Build Client Docker Image and load locally
+      # Build Client Docker Image
       - name: Build Client Docker Image
         uses: docker/build-push-action@v6
         with:
           context: ./client
           tags: ${{ steps.client_docker_meta.outputs.tags }}
           labels: ${{ steps.client_docker_meta.outputs.labels }}
-          load: true # Load the image to the local Docker daemon
-          platforms: linux/amd64,linux/arm64
+          push: false
 
-      # Build Server Docker Image and load locally
+      # Build Server Docker Image
       - name: Build Server Docker Image
         uses: docker/build-push-action@v6
         with:
           context: ./api
           tags: ${{ steps.server_docker_meta.outputs.tags }}
           labels: ${{ steps.server_docker_meta.outputs.labels }}
-          load: true # Load the image to the local Docker daemon
-          platforms: linux/amd64,linux/arm64
+          push: false
 
       # Run Snyk Security Scans for Client Image
       - name: Snyk Docker Scan for Client Image
