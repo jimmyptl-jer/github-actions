@@ -1,4 +1,4 @@
-name: BookStore Build, Scan, and Push Docker Images
+name: BookStore Build, Push, and Scan Docker Images
 
 on:
   push:
@@ -41,23 +41,23 @@ jobs:
             type=ref,event=branch
             type=sha
 
-      # Build Client Docker Image
-      - name: Build Client Docker Image
+      # Build and Push Client Docker Image
+      - name: Build and Push Client Docker Image
         uses: docker/build-push-action@v6
         with:
           context: ./client
           tags: ${{ steps.client_docker_meta.outputs.tags }}
           labels: ${{ steps.client_docker_meta.outputs.labels }}
-          push: false
+          push: true
 
-      # Build Server Docker Image
-      - name: Build Server Docker Image
+      # Build and Push Server Docker Image
+      - name: Build and Push Server Docker Image
         uses: docker/build-push-action@v6
         with:
           context: ./api
           tags: ${{ steps.server_docker_meta.outputs.tags }}
           labels: ${{ steps.server_docker_meta.outputs.labels }}
-          push: false
+          push: true
 
       # Run Snyk Security Scans for Client Image
       - name: Snyk Docker Scan for Client Image
@@ -74,21 +74,3 @@ jobs:
           image: ${{ secrets.DOCKER_USERNAME }}/bookstore-server:${{ github.sha }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      # Push Client Docker Image only if Snyk Scan Passed
-      - name: Push Client Docker Image
-        if: ${{ success() }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./client
-          tags: ${{ steps.client_docker_meta.outputs.tags }}
-          push: true
-
-      # Push Server Docker Image only if Snyk Scan Passed
-      - name: Push Server Docker Image
-        if: ${{ success() }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ./api
-          tags: ${{ steps.server_docker_meta.outputs.tags }}
-          push: true
