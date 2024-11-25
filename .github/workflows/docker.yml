@@ -47,7 +47,7 @@ jobs:
             type=ref,event=branch
             type=sha
 
-      # Build Client Docker Image without pushing
+      # Build Client Docker Image and load locally
       - name: Build Client Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -56,10 +56,10 @@ jobs:
           context: ./client
           tags: ${{ steps.client_docker_meta.outputs.tags }}
           labels: ${{ steps.client_docker_meta.outputs.labels }}
-          push: false
+          load: true # Load the image to the local Docker daemon
           platforms: linux/amd64,linux/arm64
 
-      # Build Server Docker Image without pushing
+      # Build Server Docker Image and load locally
       - name: Build Server Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -68,14 +68,14 @@ jobs:
           context: ./api
           tags: ${{ steps.server_docker_meta.outputs.tags }}
           labels: ${{ steps.server_docker_meta.outputs.labels }}
-          push: false
+          load: true # Load the image to the local Docker daemon
           platforms: linux/amd64,linux/arm64
 
       # Run Snyk Security Scans for Client Image
       - name: Snyk Docker Scan for Client Image
         uses: snyk/actions/docker@master
         with:
-          image: ${{ steps.client_docker_meta.outputs.tags }}
+          image: ${{ secrets.DOCKER_USERNAME }}/bookstore-client:${{ github.sha }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -83,7 +83,7 @@ jobs:
       - name: Snyk Docker Scan for Server Image
         uses: snyk/actions/docker@master
         with:
-          image: ${{ steps.server_docker_meta.outputs.tags }}
+          image: ${{ secrets.DOCKER_USERNAME }}/bookstore-server:${{ github.sha }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
