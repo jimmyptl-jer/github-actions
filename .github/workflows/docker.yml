@@ -20,9 +20,9 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Run Snyk Vulnerability Scan for Dependencies
-        uses: snyk/actions/nodejs@v1
-        with:
-          snyk-token: ${{ secrets.SNYK_TOKEN }}
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       # Build Client Docker Image
       - name: Build Client Docker Image
