@@ -46,7 +46,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./client
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: ${{ steps.client_docker_meta.outputs.tags }}
           labels: ${{ steps.client_docker_meta.outputs.labels }}
           push: false # Don't push yet, we need to scan first
@@ -56,7 +55,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./api
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: ${{ steps.server_docker_meta.outputs.tags }}
           labels: ${{ steps.server_docker_meta.outputs.labels }}
           push: false # Don't push yet, we need to scan first
