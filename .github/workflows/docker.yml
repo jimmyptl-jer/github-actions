@@ -1,4 +1,4 @@
-name: BookStore Scan and Push Docker Images
+name: BookStore Build, Scan, and Push Docker Images
 
 on:
   push:
@@ -41,6 +41,26 @@ jobs:
             type=ref,event=branch
             type=sha
 
+      # Build Client Docker Image
+      - name: Build Client Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: ${{ steps.client_docker_meta.outputs.tags }}
+          labels: ${{ steps.client_docker_meta.outputs.labels }}
+          push: false # Don't push yet, we need to scan first
+
+      # Build Server Docker Image
+      - name: Build Server Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: ${{ steps.server_docker_meta.outputs.tags }}
+          labels: ${{ steps.server_docker_meta.outputs.labels }}
+          push: false # Don't push yet, we need to scan first
+
       # Scan Client Docker Image for Vulnerabilities using Anchore
       - name: Scan Client Docker Image for Vulnerabilities
         uses: anchore/scan-action@v3
@@ -62,7 +82,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./client
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: ${{ steps.client_docker_meta.outputs.tags }}
           labels: ${{ steps.client_docker_meta.outputs.labels }}
           push: true
@@ -72,7 +92,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./api
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: ${{ steps.server_docker_meta.outputs.tags }}
           labels: ${{ steps.server_docker_meta.outputs.labels }}
           push: true
