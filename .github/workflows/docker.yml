@@ -19,8 +19,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Run Snyk Vulnerability Scan for Dependencies
+      - name: Run Snyk Vulnerability Scan for Client Dependencies
         uses: snyk/actions/node@master
+        with:
+          context: ./client
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run Snyk Vulnerability Scan for Server Dependencies
+        uses: snyk/actions/node@master
+        with:
+          context: ./api
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
