@@ -21,8 +21,8 @@ jobs:
 
       - name: Install Docker Bench Security
         run: |
-          curl -L https://github.com/docker/docker-bench-security/releases/latest/download/docker-bench-security.sh -o docker-bench-security.sh
-          chmod +x docker-bench-security.sh
+          git clone https://github.com/docker/docker-bench-security.git
+          cd docker-bench-security
 
       - name: Run Docker Bench Security
         run: |
