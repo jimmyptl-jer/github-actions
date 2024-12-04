@@ -19,6 +19,23 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Install Docker Bench Security
+        run: |
+          curl -L https://github.com/docker/docker-bench-security/releases/latest/download/docker-bench-security.sh -o docker-bench-security.sh
+          chmod +x docker-bench-security.sh
+
+      - name: Run Docker Bench Security
+        run: |
+          sudo sh docker-bench-security.sh > docker-bench-report.txt
+          cat docker-bench-report.txt
+
+      - name: Fail Build if Issues Found
+        run: |
+          if grep -q "[WARN]" docker-bench-report.txt; then
+            echo "Warnings found in Docker Bench Security report. Failing the build."
+            exit 1
+          fi
+
       # Build Client Docker Image
       - name: Build Client Docker Image
         uses: docker/build-push-action@v6
