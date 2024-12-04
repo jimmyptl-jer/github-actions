@@ -22,10 +22,10 @@ jobs:
       - name: Install Docker Bench Security
         run: |
           git clone https://github.com/docker/docker-bench-security.git
-          cd docker-bench-security
 
       - name: Run Docker Bench Security
         run: |
+          cd docker-bench-security
           sudo sh docker-bench-security.sh > docker-bench-report.txt
           cat docker-bench-report.txt
 
