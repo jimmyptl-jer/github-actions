@@ -2,9 +2,9 @@ name: Bookstore CI/CD
 
 # Define when the workflow should run (on push to the main branch).
 on:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
   pull_request:
 
 # Define jobs for the workflow.
